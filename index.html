@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>STATO AVANZAMENTO COMMESSE</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@500;700&display=swap");
+      :root {
+        --bg: #0b0b0b;
+        --cell: #050505;
+        --line: #1a1a1a;
+        --text: #f5f5f5;
+        --dim: #888;
+        --running: #4da3ff;
+        --done: #34d399;
+        --urgent: #ff5252;
+        --planned: #b58cff;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Roboto Mono", monospace;
+        overflow: hidden;
+      }
+
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 40px;
+        border-bottom: 2px solid var(--line);
+      }
+      .title {
+        font-size: 32px;
+        letter-spacing: 0.15em;
+      }
+      .clock {
+        font-size: 30px;
+      }
+
+      .headers,
+      .row {
+        display: grid;
+        grid-template-columns: 12% 16% 1fr 14% 14% 16%;
+        width: 100%;
+      }
+
+      .headers {
+        padding: 12px 40px;
+        font-size: 13px;
+        color: var(--dim);
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+      .headers > div {
+        padding: 0 12px;
+      }
+
+      .viewport {
+        height: calc(100vh - 118px);
+        overflow: hidden;
+        position: relative;
+      }
+      .board {
+        padding: 0 40px 120px;
+        position: absolute;
+        width: 100%;
+      }
+
+      .cell {
+        height: 80px;
+        background: var(--cell);
+        border-bottom: 1px solid var(--line);
+        display: flex;
+        align-items: center;
+        padding: 0 12px;
+        font-size: 24px;
+        overflow: hidden;
+        white-space: nowrap;
+      }
+
+      .char {
+        display: inline-block;
+        min-width: 1px;
+        text-align: center;
+        transform-origin: center;
+      }
+      .flip {
+        animation: flip 1s ease-in-out;
+      }
+      @keyframes flip {
+        0% {
+          transform: rotateX(0);
+        }
+        50% {
+          transform: rotateX(90deg);
+        }
+        100% {
+          transform: rotateX(0);
+        }
+      }
+
+      .status {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+      .running {
+        background: var(--running);
+      }
+      .done {
+        background: var(--done);
+      }
+      .urgent {
+        background: var(--urgent);
+      }
+      .planned {
+        background: var(--planned);
+      }
+      .dot.running {
+        box-shadow: 0 0 6px var(--running);
+      }
+      .dot.urgent {
+        box-shadow: 0 0 6px var(--urgent);
+        animation: blink 0.8s infinite;
+      }
+      @keyframes blink {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.2;
+        }
+      }
+
+      .updated {
+        background: #111 !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <div class="title">STATO AVANZAMENTO COMMESSE</div>
+      <div class="clock" id="clock"></div>
+    </div>
+
+    <div class="headers">
+      <div>Commessa</div>
+      <div>Cliente</div>
+      <div>Descrizione</div>
+      <div>Reparto</div>
+      <div>Operatore</div>
+      <div>Stato</div>
+    </div>
+
+    <div class="viewport">
+      <div class="board" id="board"></div>
+    </div>
+
+    <script>
+      const STATUS = {
+        running: { label: "IN LAVORAZ.", cls: "running" },
+        done: { label: "COMPLETATA", cls: "done" },
+        urgent: { label: "URGENTE", cls: "urgent" },
+        planned: { label: "PIANIFICATA", cls: "planned" },
+      };
+
+      let data = [
+        {
+          id: "0881",
+          cli: "BREMBO SPA",
+          desc: "Linea assemblaggio pinze freno",
+          rep: "MONTAGGIO A",
+          op: "R. FERRARI",
+          stato: "running",
+        },
+        {
+          id: "0882",
+          cli: "PIRELLI TYRE",
+          desc: "Retrofit pressa vulcaniz. #12",
+          rep: "ELETTRICO B",
+          op: "G. RUSSO",
+          stato: "urgent",
+        },
+        {
+          id: "0883",
+          cli: "DANIELI & C.",
+          desc: "Quadro MCC laminatoio 600A",
+          rep: "CARPENTERIA",
+          op: "S. ESPOSITO",
+          stato: "running",
+        },
+        {
+          id: "0879",
+          cli: "CNH INDUSTRIAL",
+          desc: "Impianto oleoidraulico TX-7",
+          rep: "COLLAUDO 1",
+          op: "M. CONTI",
+          stato: "done",
+        },
+        {
+          id: "0884",
+          cli: "FIDIA SPA",
+          desc: "Revisione asse C fresatrice 5X",
+          rep: "MONTAGGIO B",
+          op: "P. GALLO",
+          stato: "planned",
+        },
+        {
+          id: "0885",
+          cli: "ABB SPA",
+          desc: "Quadro potenza linea 4",
+          rep: "ELETTRICO A",
+          op: "L. ROSSI",
+          stato: "running",
+        },
+        {
+          id: "0886",
+          cli: "SIEMENS IT",
+          desc: "Upgrade PLC linea 2",
+          rep: "AUTOMAZIONE",
+          op: "F. VERDI",
+          stato: "planned",
+        },
+        {
+          id: "0887",
+          cli: "GEFRAN SPA",
+          desc: "Test drive inverter 132kW",
+          rep: "COLLAUDO 2",
+          op: "A. NERI",
+          stato: "running",
+        },
+        {
+          id: "0876",
+          cli: "COMAU SPA",
+          desc: "Cella robotica saldatura MIG",
+          rep: "PROG. MECCATR",
+          op: "A. ROMANO",
+          stato: "running",
+        },
+        {
+          id: "0878",
+          cli: "SOILMEC SRL",
+          desc: "Sistema monit. perforatrice GPS",
+          rep: "ELETTRICO A",
+          op: "N. CONTI",
+          stato: "planned",
+        },
+      ];
+
+      const UPDATES = [
+        { id: "0882", stato: "running" },
+        { id: "0881", rep: "COLLAUDO 1" },
+        { id: "0883", stato: "done" },
+        { id: "0887", stato: "urgent" },
+        { id: "0886", rep: "SOFTWARE" },
+      ];
+
+      let updIndex = 0;
+
+      function pad(text, len) {
+        return String(text).substring(0, len).padEnd(len, " ");
+      }
+
+      function textToChars(text, len) {
+        return pad(text, len)
+          .split("")
+          .map((c) => `<span class="char">${c === " " ? "&nbsp;" : c}</span>`)
+          .join("");
+      }
+
+      function render() {
+        document.getElementById("board").innerHTML = data
+          .map(
+            (r) => `
+    <div class="row" id="r-${r.id}">
+      <div class="cell" data-f="id">${textToChars("ORD-" + r.id, 10)}</div>
+      <div class="cell" data-f="cli">${textToChars(r.cli, 18)}</div>
+      <div class="cell" data-f="desc">${textToChars(r.desc, 32)}</div>
+      <div class="cell" data-f="rep">${textToChars(r.rep, 16)}</div>
+      <div class="cell" data-f="op">${textToChars(r.op, 16)}</div>
+      <div class="cell" data-f="stato"><div class="status"><div class="dot ${STATUS[r.stato].cls}"></div>${STATUS[r.stato].label}</div></div>
+    </div>
+  `,
+          )
+          .join("");
+      }
+
+      function flipChars(cell, newText, len) {
+        const chars = cell.querySelectorAll(".char");
+        const next = pad(newText, len).split("");
+        chars.forEach((c, i) => {
+          const ch = next[i] === " " ? "\u00a0" : next[i];
+          if (c.textContent !== ch) {
+            setTimeout(() => {
+              c.textContent = ch;
+              c.classList.add("flip");
+              setTimeout(() => c.classList.remove("flip"), 1000);
+            }, i * 80);
+          }
+        });
+      }
+
+      function flipStatus(cell, stato) {
+        cell.innerHTML = `<div class="status"><div class="dot ${STATUS[stato].cls}"></div>${STATUS[stato].label}</div>`;
+      }
+
+      function applyUpdate() {
+        if (UPDATES.length === 0) return;
+
+        const u = UPDATES[updIndex];
+        updIndex = (updIndex + 1) % UPDATES.length; // loop continuo
+
+        const row = data.find((x) => x.id === u.id);
+        Object.assign(row, u);
+
+        const rowEl = document.getElementById("r-" + u.id);
+        if (!rowEl) return;
+
+        if (u.rep) flipChars(rowEl.querySelector('[data-f="rep"]'), u.rep, 16);
+        if (u.stato)
+          flipStatus(rowEl.querySelector('[data-f="stato"]'), u.stato);
+
+        rowEl.classList.add("updated");
+        setTimeout(() => rowEl.classList.remove("updated"), 1800);
+      }
+
+      function tick() {
+        document.getElementById("clock").textContent =
+          new Date().toLocaleTimeString("it-IT");
+      }
+
+      let y = 0;
+      const board = document.getElementById("board");
+      function scrollLoop() {
+        y -= 0.4;
+        const limit = -(board.offsetHeight - (window.innerHeight - 118));
+        if (y < limit) y = 0;
+        board.style.transform = `translateY(${y}px)`;
+        requestAnimationFrame(scrollLoop);
+      }
+
+      render();
+      tick(); //scrollLoop();
+      setInterval(tick, 1000);
+      setInterval(applyUpdate, 3000);
+    </script>
+  </body>
+</html>
