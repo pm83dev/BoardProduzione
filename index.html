@@ -260,16 +260,44 @@
         },
       ];
 
-      const UPDATES = [
-        { id: "0882", stato: "running" },
-        { id: "0881", rep: "COLLAUDO 1" },
-        { id: "0883", stato: "done" },
-        { id: "0887", stato: "urgent" },
-        { id: "0886", rep: "SOFTWARE" },
+      const REPARTI = [
+        "MONTAGGIO A",
+        "MONTAGGIO B",
+        "ELETTRICO A",
+        "ELETTRICO B",
+        "COLLAUDO 1",
+        "COLLAUDO 2",
+        "AUTOMAZIONE",
+        "SOFTWARE",
+        "CARPENTERIA",
+        "PROG. MECCATR",
       ];
 
-      let updIndex = 0;
-      const ORIGINAL = new Map(); // id -> { campo: valoreOriginale }
+      const OPERATORI = [
+        "R. FERRARI",
+        "G. RUSSO",
+        "S. ESPOSITO",
+        "M. CONTI",
+        "P. GALLO",
+        "L. ROSSI",
+        "F. VERDI",
+        "A. NERI",
+        "A. ROMANO",
+        "N. CONTI",
+      ];
+
+      const DESCRIZIONI = [
+        "Linea assemblaggio pinze freno",
+        "Retrofit pressa vulcaniz. #12",
+        "Quadro MCC laminatoio 600A",
+        "Impianto oleoidraulico TX-7",
+        "Revisione asse C fresatrice 5X",
+        "Quadro potenza linea 4",
+        "Upgrade PLC linea 2",
+        "Test drive inverter 132kW",
+        "Cella robotica saldatura MIG",
+        "Sistema monit. perforatrice GPS",
+      ];
 
       function pad(text, len) {
         return String(text).substring(0, len).padEnd(len, " ");
@@ -318,33 +346,44 @@
         cell.innerHTML = `<div class="status"><div class="dot ${STATUS[stato].cls}"></div>${STATUS[stato].label}</div>`;
       }
 
+      function randomFrom(list, current) {
+        if (!list.length) return current;
+        let next = current;
+        while (next === current && list.length > 1) {
+          next = list[Math.floor(Math.random() * list.length)];
+        }
+        return next;
+      }
+
       function applyUpdate() {
-        if (UPDATES.length === 0) return;
+        if (!data.length) return;
 
-        const u = UPDATES[updIndex];
-        updIndex = (updIndex + 1) % UPDATES.length; // loop continuo
-
-        const row = data.find((x) => x.id === u.id);
-        if (!row) return;
-
-        if (!ORIGINAL.has(u.id)) ORIGINAL.set(u.id, {});
-        const original = ORIGINAL.get(u.id);
-
-        const rowEl = document.getElementById("r-" + u.id);
+        const row = data[Math.floor(Math.random() * data.length)];
+        const rowEl = document.getElementById("r-" + row.id);
         if (!rowEl) return;
 
-        if (u.rep) {
-          if (original.rep === undefined) original.rep = row.rep;
-          const nextRep = row.rep === u.rep ? original.rep : u.rep;
-          row.rep = nextRep;
-          flipChars(rowEl.querySelector('[data-f="rep"]'), nextRep, 16);
+        const choices = ["rep", "op", "stato", "desc"];
+        const field = choices[Math.floor(Math.random() * choices.length)];
+
+        if (field === "rep") {
+          row.rep = randomFrom(REPARTI, row.rep);
+          flipChars(rowEl.querySelector('[data-f="rep"]'), row.rep, 16);
         }
 
-        if (u.stato) {
-          if (original.stato === undefined) original.stato = row.stato;
-          const nextStato = row.stato === u.stato ? original.stato : u.stato;
-          row.stato = nextStato;
-          flipStatus(rowEl.querySelector('[data-f="stato"]'), nextStato);
+        if (field === "op") {
+          row.op = randomFrom(OPERATORI, row.op);
+          flipChars(rowEl.querySelector('[data-f="op"]'), row.op, 16);
+        }
+
+        if (field === "stato") {
+          const states = Object.keys(STATUS);
+          row.stato = randomFrom(states, row.stato);
+          flipStatus(rowEl.querySelector('[data-f="stato"]'), row.stato);
+        }
+
+        if (field === "desc") {
+          row.desc = randomFrom(DESCRIZIONI, row.desc);
+          flipChars(rowEl.querySelector('[data-f="desc"]'), row.desc, 32);
         }
 
         rowEl.classList.add("updated");
