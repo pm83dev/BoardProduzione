@@ -269,6 +269,7 @@
       ];
 
       let updIndex = 0;
+      const ORIGINAL = new Map(); // id -> { campo: valoreOriginale }
 
       function pad(text, len) {
         return String(text).substring(0, len).padEnd(len, " ");
@@ -324,14 +325,27 @@
         updIndex = (updIndex + 1) % UPDATES.length; // loop continuo
 
         const row = data.find((x) => x.id === u.id);
-        Object.assign(row, u);
+        if (!row) return;
+
+        if (!ORIGINAL.has(u.id)) ORIGINAL.set(u.id, {});
+        const original = ORIGINAL.get(u.id);
 
         const rowEl = document.getElementById("r-" + u.id);
         if (!rowEl) return;
 
-        if (u.rep) flipChars(rowEl.querySelector('[data-f="rep"]'), u.rep, 16);
-        if (u.stato)
-          flipStatus(rowEl.querySelector('[data-f="stato"]'), u.stato);
+        if (u.rep) {
+          if (original.rep === undefined) original.rep = row.rep;
+          const nextRep = row.rep === u.rep ? original.rep : u.rep;
+          row.rep = nextRep;
+          flipChars(rowEl.querySelector('[data-f="rep"]'), nextRep, 16);
+        }
+
+        if (u.stato) {
+          if (original.stato === undefined) original.stato = row.stato;
+          const nextStato = row.stato === u.stato ? original.stato : u.stato;
+          row.stato = nextStato;
+          flipStatus(rowEl.querySelector('[data-f="stato"]'), nextStato);
+        }
 
         rowEl.classList.add("updated");
         setTimeout(() => rowEl.classList.remove("updated"), 1800);
